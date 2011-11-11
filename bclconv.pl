@@ -8,6 +8,7 @@
 use strict;
 use warnings;
 
+use FindBin;
 use FileHandle;
 use Getopt::Long;
 use Pod::Usage;
@@ -15,7 +16,8 @@ use Pod::Usage;
 # Specify default illumina primer version here
 my $defpv = undef;
 
-use lib ("./modules/");
+use lib "$FindBin::Bin/modules";
+
 use illumina qw(iv2plen Ndx2primer primer2Ndx);
 
 my $tiles = 1306;
