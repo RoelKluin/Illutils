@@ -4,6 +4,10 @@ package illumina;
 require Exporter;
 my @ISA = qw(Exporter);
 
+our %primer2v1Ndx = ("ATCACG" => 1, "CGATGT" => 2, "TTAGGC" => 3, "TGACCA" => 4, "ACAGTG" => 5,
+	"GCCAAT" => 6, "CAGATC" => 7, "ACTTGA" => 8, "GATCAG" => 9, "TAGCTT" => 10,
+	"GGCTAC" => 11, "CTTGTA" => 12);
+
 # 1-12 have an A as 7th: primer v2.
 our %Ndx2primer = (1 => "ATCACGA", 2 => "CGATGTA", 3 => "TTAGGCA", 4 => "TGACCAA", 5 => "ACAGTGA",
 	6 => "GCCAATA", 7 => "CAGATCA", 8 => "ACTTGAA", 9 => "GATCAGA", 10 => "TAGCTTA",
@@ -21,18 +25,19 @@ our %primer2Ndx = ("ATCACGA" => 1, "CGATGTA" => 2, "TTAGGCA" => 3, "TGACCAA" => 
 	"ACTGATA" => 25, "ATTCCTT" => 27);
 
 #specifies per illumina version the primer length.
-our %iv2plen = ('1' => 5, '2' => 6);
+our %v2plen = ('1' => 5, '2' => 6);
 
-my @EXPORT_OK = qw(Ndx2iprimer iprimer2Ndx iv2plen);
-
-# this makes the samplesheet creation backwards compatible with v1 illumina primers
-sub v2primer {
-	my ($dna, $row) = @_;
-	my $ret = $dna;
-	$ret .= 'A' if length($ret) == 6;
-	die "ERROR:$row:non-existing illumina primer: $dna" if
-		(length($ret) != 7 || not exists $primer2Ndx{$ret}) || ($primer2Ndx{$ret} > 12);
-	return $ret;
+sub v1primer {
+	my $ret = shift;
+	$ret = (substr $ret, 0, 6) if length($ret) == 7 and $ret =~ /A$/;
+	return exists $primer2v1Ndx{$ret} ? $ret : undef;
 }
 
+sub v2primer {
+	my $ret = shift;
+	$ret .= 'A' if length($ret) == 6;
+	return exists $primer2Ndx{$ret} ? $ret : undef;
+}
+
+my @EXPORT_OK = qw(%Ndx2primer %primer2Ndx %primer2v1Ndx %v2plen v2primer v1primer vprimer);
 1;

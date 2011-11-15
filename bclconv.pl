@@ -17,20 +17,19 @@ use Pod::Usage;
 my $defpv = undef;
 
 use lib "$FindBin::Bin/modules";
-
-use illumina qw(iv2plen Ndx2primer primer2Ndx);
+use illumina qw(Ndx2primer primer2Ndx primer2v1Ndx v2plen v2primer v1primer vprimer);
 
 my $tiles = 1306;
 my $nreads = 1000000;
 my $readlen = 50;
-my ($c1, $c2, $version, $lane, $path, $help, $man, $qual, $both, $uniq);
+my ($c1, $c2, $version, $lane, $path, $help, $man, $qual, $both, $uniq, $ill);
 
 Getopt::Long::Configure("no_ignore_case", "prefix_pattern=(--|-)");
 GetOptions('lane|l:i' => \$lane, 'start-cycle|s:i' => \$c1, 'end-cycle|e:i' => \$c2, 'tiles|t=s' => \$tiles,
 	'version|v:i' => \$version, 'path|p=s' => \$path, 'qualities|q' => \$qual, 'nreads|n:i' => \$nreads,
 	'both|b' => \$both, 'uniq|u' => \$uniq, 'read-length|L:i' => \$readlen, '50' => sub { $readlen = 50; },
 	'75' => sub { $readlen = 75; }, '100' => sub { $readlen = 100; }, 'v1' => sub { $version = 1; },
-	'v2' => sub { $version = 2; }, 'help|?|h' => \$help, 'man' => \$man);
+	'v2' => sub { $version = 2; }, 'help|?|h' => \$help, 'man' => \$man, 'i|illumina' => \$ill);
 
 pod2usage(-verbose => 2) if defined $man;
 pod2usage(0) if defined $help;
@@ -73,6 +72,7 @@ if ($1) {
 		chomp $path;
 	}
 }
+exit_msg("Illumina has no version $version") if not exists $illumina::v2plen{$version};
 
 $c1 = $readlen + 1 if not defined $c1;
 if (not defined $c2) {
@@ -83,9 +83,8 @@ if (not defined $c2) {
 		# FIXME: can we automate choice between v1 and v2 primers? maybe file size?
 		$version = $defpv;
 	}
-	$c2 = $c1 + $illumina::iv2plen{$version};
+	$c2 = $c1 + $illumina::v2plen{$version};
 }
-exit_msg("Illumina has no version $version") if not exists $illumina::iv2plen{$version};
 
 
 my @files;
@@ -93,7 +92,7 @@ warn "reading cyles $c1..$c2 for tiles $tiles\n";
 foreach my $tile (split /,/, $tiles) {
 	exit_msg("Invalid tile: $tile") if $tile !~ /^[0-9]+$/;
 	for ($c1..$c2) {
-		my $f = "$path"."C$_.1/s_$lane"."_$tile.bcl";
+		my $f = "$path/C$_.1/s_$lane"."_$tile.bcl";
 		exit_msg("Invalid tile: $f") if	not -f $f;
 		push @files, $f;
 	}
@@ -150,8 +149,22 @@ foreach my $f (@files) {
 		$func->($bits, $_);
 	}
 }
-
-if (defined $uniq) {
+if (defined $ill) {
+	my %t;
+	print "count\tindex\tDNA_index\n";
+	my ($c2pfunc, $p2nh);
+	if ($version == 1) {
+		($c2pfunc, $p2nh) = (\&illumina::v1primer, \%illumina::primer2v1Ndx);
+	} else {
+		($c2pfunc, $p2nh) = (\&illumina::v2primer, \%illumina::primer2Ndx);
+	}
+	for (0..$nreads) {
+		my $r = $c2pfunc->($res[$_]);
+		die $r if ((defined $r) && (not exists $p2nh->{$r}));
+		$t{defined $r ? $p2nh->{$r}."\t".$r : "-\tunmatched"}++;
+	}
+	print "$t{$_}\t$_\n" foreach (sort {$t{$a} <=> $t{$b}} keys %t);
+} elsif (defined $uniq) {
 	my %t;
 	$t{($both ? $res[$_]."\t".$qual[$_] : ($qual ? $qual[$_] : $res[$_]))."\n"}++ for (0..$nreads);
 	print "$t{$_}\t$_" foreach (sort {$t{$a} <=> $t{$b}} keys %t);
@@ -225,6 +238,10 @@ Print manual page
 =item B<-n|--reads>
 
 Specify the number of reads
+
+=item B<-i|--illumina>
+
+only count and print illumina primers, nr and dna.
 
 =back
 
