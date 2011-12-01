@@ -1,5 +1,4 @@
-#!/usr/bin/perl
-
+#!/usr/bin/env perl
 # Manually retrieve dna and/or qualities from bcl files
 # GPL v.2.0, 2011-11-11
 # (C) Roel Kluin, Arno Velds, NKI
@@ -16,7 +15,7 @@ use Pod::Usage;
 # Specify default illumina primer version here
 my $defpv = undef;
 
-use lib "$FindBin::Bin/modules";
+use lib "$FindBin::RealBin/modules";
 use illumina qw(Ndx2primer primer2Ndx primer2v1Ndx v2plen v2primer v1primer vprimer);
 
 my $tiles = 1306;
@@ -235,7 +234,7 @@ Print options message
 
 Print manual page
 
-=item B<-n|--reads>
+=item B<-n|--nreads>
 
 Specify the number of reads
 
