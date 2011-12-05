@@ -11,6 +11,7 @@ use FindBin;
 use FileHandle;
 use Getopt::Long;
 use Pod::Usage;
+use integer;
 
 # Specify default illumina primer version here
 my $defpv = undef;
@@ -139,9 +140,11 @@ foreach my $f (@files) {
 	exit_msg("error".(defined $ret ? " ($ret)" : '')." while reading $f: $!\n") if not $ret;
 
 	my $nclust = unpack("L", $buff);
-	warn "nclust = $nclust\n";
+	$nreads = $nclust if $nclust < $nreads;
+	my $offset = ($nclust - $nreads) / 2;
+	warn "reading $nreads of nclust ($nclust), offset = $offset\n";
 
-	seek($fh, $nreads, 0) or exit_msg("couldn't seek to $nreads bytes in $f: $!\n");
+	seek($fh, $offset + 1, 0) or exit_msg("couldn't seek to $nreads bytes in $f: $!\n");
 	for (1 .. $nreads) {
 		read($fh, $buff, 1) or exit_msg("error while reading $f ($_): $!\n");
 		my $bits = unpack("b8", $buff);
